@@ -13,14 +13,16 @@ USE bookstore_db;
     (4) price     : 가격, 정수
 */
 DROP TABLE IF EXISTS tbl_book;
+DROP TABLE IF EXISTS tbl_customer;
+DROP TABLE IF EXISTS tbl_order;
 
 CREATE TABLE IF NOT EXISTS tbl_book (
-    book_id INT AUTO_INCREMENT PRIMARY KEY,
+    book_id INT AUTO_INCREMENT,
     book_name VARCHAR(100),
     publisher VARCHAR(50),
-    price INT
+    price INT,
+    CONSTRAINT pk_book_id PRIMARY KEY (book_id)
 );
-
 
 -- 2. tbl_customer 테이블을 생성하시오.
 /*
@@ -32,12 +34,12 @@ CREATE TABLE IF NOT EXISTS tbl_book (
 */
 DROP TABLE IF EXISTS tbl_customer;
 CREATE TABLE IF NOT EXISTS tbl_customer(
-    cust_id INT AUTO_INCREMENT PRIMARY KEY,
+    cust_id INT AUTO_INCREMENT,
     cust_name VARCHAR(20),
     cust_addr VARCHAR(50),
-    cust_tel VARCHAR(20)
+    cust_tel VARCHAR(20),
+    CONStRAINT pk_cust_id PRIMARY KEY (cust_id)
 );
-
 
 -- 3. tbl_order 테이블을 생성하시오.
 /*
@@ -50,10 +52,19 @@ CREATE TABLE IF NOT EXISTS tbl_customer(
 */
 DROP TABLE IF EXISTS tbl_order;
 CREATE TABLE IF NOT EXISTS tbl_order(
-    order_id INT AUTO_INCREMENT PRIMARY KEY,
-    cust_id INT
+    order_id INT AUTO_INCREMENT,
+    cust_id INT,
+    book_id INT,
+    amount INT,
+    ordered_at DATE,
+    CONSTRAINT pk_order_id PRIMARY KEY (order_id),
+    CONSTRAINT fk_cust_id FOREIGN KEY (cust_id)
+        REFERENCES tbl_customer (cust_id)
+        ON DELETE SET NULL,
+    CONSTRAINT fk_book_id FOREIGN KEY (book_id)
+        REFERENCES tbl_book (book_id)
+        ON DELETE CASCADE
 );
-
 
 -- 4. 아래 데이터를 tbl_book 테이블에 INSERT 하시오.
 /*
@@ -69,6 +80,16 @@ CREATE TABLE IF NOT EXISTS tbl_order(
     9       올림픽 이야기    삼성당      7500
     10      올림픽 챔피언    나이스북    13000
 */
+INSERT INTO tbl_book VALUES (NULL, '축구의 역사' , '굿스포츠' , 7000);
+INSERT INTO tbl_book VALUES (NULL, '축구 아는 여자' , '나이스북' , 13000);
+INSERT INTO tbl_book VALUES (NULL, '축구의 이해' , '대한미디어' ,22000);
+INSERT INTO tbl_book VALUES (NULL, '골프 바이블' , '대한미디어' , 35000);
+INSERT INTO tbl_book VALUES (NULL, '피겨 교본' , '굿스포츠' , 6000);
+INSERT INTO tbl_book VALUES (NULL, '역도 단계별 기술' , '굿스포츠' , 6000);
+INSERT INTO tbl_book VALUES (NULL, '야구의 추억' , '이상미디어' , 20000);
+INSERT INTO tbl_book VALUES (NULL, '야구를 부탁해' , '이상미디어' , 13000);
+INSERT INTO tbl_book VALUES (NULL, '올림픽 이야기' , '삼성당' , 7500);
+INSERT INTO tbl_book VALUES (NULL, '올림픽 챔피언' , '나이스북' , 13000);
 
 
 -- 5. 아래 데이터를 tbl_customer 테이블에 INSERT 하시오.
@@ -80,7 +101,11 @@ CREATE TABLE IF NOT EXISTS tbl_order(
     1003     추신수   미국      333-333-3333
     1004     박세리   대한민국  NULL
 */
-
+INSERT INTO tbl_customer VALUES(1000, '박지성', '영국', '000-000-0000');
+INSERT INTO tbl_customer VALUES(1001, '김연아', '대한민국', '111-111-1111');
+INSERT INTO tbl_customer VALUES(1002, '장미란', '대한민국', '222-222-2222');
+INSERT INTO tbl_customer VALUES(1003, '추신수', '미국', '333-333-3333');
+INSERT INTO tbl_customer VALUES(1004, '박세리', '대한민국', NULL);
 
 -- 6. 아래 데이터를 tbl_order 테이블에 INSERT 하시오.
 /*
@@ -96,18 +121,38 @@ CREATE TABLE IF NOT EXISTS tbl_order(
     9          1001      10      1        2020-07-09
     10         1002      6       4        2020-07-10
 */
+INSERT INTO tbl_order VALUES(1, 1000, 1, 1, '2020-07-01');
+INSERT INTO tbl_order VALUES(2, 1000, 3, 2, '2020-07-03');
+INSERT INTO tbl_order VALUES(3, 1001, 5, 1, '2020-07-03');
+INSERT INTO tbl_order VALUES(4, 1002, 6, 2, '2020-07-04');
+INSERT INTO tbl_order VALUES(5, 1003, 7, 3, '2020-07-05');
+INSERT INTO tbl_order VALUES(6, 1000, 2, 5, '2020-07-07');
+INSERT INTO tbl_order VALUES(7, 1003, 8, 2, '2020-07-07');
+INSERT INTO tbl_order VALUES(8, 1002, 10, 2, '2020-07-08');
+INSERT INTO tbl_order VALUES(9, 1001, 10, 1, '2020-07-09');
+INSERT INTO tbl_order VALUES(10, 1002, 6, 4, '2020-07-10');
 
 -- 7. 책이름에 '올림픽'이 포함된 책 정보를 조회하시오.
 -- book_id  book_name      publisher  price
 -- 9        올림픽 이야기  삼성당     7500
 -- 10       올림픽 챔피언  나이스북   13000
-
+SELECT book_id, book_name, publisher, price
+FROM tbl_book
+WHERE book_name LIKE '올림픽%';
 
 
 -- 8. 가격이 가장 비싼 책을 조회하시오.
 -- book_id  book_name    publisher    price
 -- 4        골프 바이블  대한미디어   35000
+SELECT book_id, book_name, publisher, price
+FROM tbl_book
+ORDER BY price DESC
+LIMIT 1;
 
+SELECT book_id, book_name, publisher, price
+FROM tbl_book
+WHERE price = (SELECT MAX(price)
+                           FROM tbl_book);
 
 
 -- 9. '2020-07-05'부터 '2020-07-09' 사이에 주문된 도서 정보를 조회하시오.
@@ -117,13 +162,21 @@ CREATE TABLE IF NOT EXISTS tbl_order(
 -- 7        8      야구를 부탁해
 -- 8        10     올림픽 챔피언
 -- 9        10     올림픽 챔피언
-
+SELECT o.order_id AS '주문번호', b.book_id AS '책번호', b.book_name AS '책이름', o.ordered_at
+FROM tbl_book b
+INNER JOIN tbl_order o
+ON o.book_id = b.book_id
+WHERE o.ordered_at BETWEEN '2020-07-05' AND '2020-07-09';
 
 
 -- 10. 주문한 이력이 없는 고객의 이름을 조회하시오.
 -- 고객명
 -- 박세리
-
+SELECT cust_name AS '고객명'
+FROM tbl_customer
+WHERE (cust_id NOT IN (SELECT cust_id
+                                          FROM tbl_order
+                                          GROUP BY cust_id));
 
 
 -- 11. '2020-07-04'부터 '2020-07-07' 사이에 주문 받은 도서를 제외하고 나머지 모든 주문 정보를 조회하시오.
@@ -134,20 +187,59 @@ CREATE TABLE IF NOT EXISTS tbl_order(
 -- 8         장미란  올림픽 챔피언    26000    2020-07-08
 -- 9         김연아  올림픽 챔피언    13000    2020-07-09
 -- 10        장미란  역도 단계별 기술 24000    2020-07-10
+SELECT o.order_id AS '구매번호', c.cust_name AS '구매자', b.book_name AS '책이름', b.price * o.amount AS '총구매액', o.ordered_at AS '주문일자'
+FROM tbl_order o
+INNER JOIN tbl_book b
+ON o.book_id = b.book_id
+INNER JOIN tbl_customer c
+ON o.cust_id = c.cust_id
+WHERE o.ordered_at NOT BETWEEN '2020-07-04' AND '2020-07-07'
+ORDER BY o.ordered_at;
 
+SELECT O.order_id AS 구매번호
+            ,  C.cust_name AS 구매자
+            ,  B.book_name AS 책이름
+            ,  B.price * O.amount AS 총구매액
+            ,  O.ordered_at AS 주문일자
+    FROM tbl_book B INNER JOIN tbl_order O
+         ON B.book_id = O.book_id INNER JOIN tbl_customer C
+         ON C.cust_id = O.cust_id
+ WHERE O.ordered_at NOT BETWEEN '2020-07-04' AND '2020-07-07';
 
 
 -- 12. 가장 최근에 구매한 고객의 이름, 책이름, 주문일자를 조회하시오.
 -- 고객명  책이름            주문일자
 -- 장미란  역도 단계별 기술  2020-07-10
+SELECT c.cust_name AS '고객명', b.book_name AS '책이름', o.ordered_at AS '주문일자'
+FROM tbl_order o
+INNER JOIN tbl_book b
+ON o.book_id = b.book_id
+INNER JOIN tbl_customer c
+ON o.cust_id = c.cust_id
+ORDER BY o.ordered_at DESC
+LIMIT 1;
 
+SELECT c.cust_name AS '고객명', b.book_name AS '책이름', o.ordered_at AS '주문일자'
+FROM tbl_book B INNER JOIN tbl_order O
+ON B.book_id = O.book_id INNER JOIN tbl_customer C
+ON C.cust_id = O.cust_id
+WHERE O.ordered_at = (SELECT MAX(ordered_at) FROM tbl_order);
 
 
 -- 13. 주문된 적이 없는 책의 주문번호, 책번호, 책이름을 조회하시오.
 -- 주문번호 책번호 책이름
 -- NULL     4      골프 바이블
 -- NULL     9      올림픽 이야기
+SELECT o.order_id AS '주문번호', b.book_id AS '책번호', b.book_name AS '책이름'
+FROM tbl_order o
+RIGHT OUTER JOIN tbl_book b
+ON o.book_id = b.book_id
+WHERE o.order_id IS NULL;
 
+SELECT o.order_id AS '주문번호', b.book_id AS '책번호', b.book_name AS '책이름'
+FROM tbl_book B LEFT JOIN tbl_order O
+ON B.book_id = O.book_id
+WHERE O.order_id IS NULL;
 
 
 -- 14. 모든 서적 중에서 가장 비싼 서적을 구매한 고객이름, 책이름, 가격을 조회하시오.
@@ -155,13 +247,33 @@ CREATE TABLE IF NOT EXISTS tbl_order(
 -- 고객명  책이름       책가격
 -- NULL    골프 바이블  35000
 
+-- SELECT c.cust_name AS '고객명', b.book_name AS '책이름', b.price AS '책가격'
+-- FROM tbl_order o
+-- RIGHT OUTER JOIN tbl_book b
+-- ON o.book_id = b.book_id
+-- LEFT OUTER JOIN tbl_customer c
+-- ON o.cust_id = c.cust_id
+-- ORDER BY b.price DESC
+-- LIMIT 1;
+
+SELECT C.cust_name AS 고객명, B.book_name AS 책이름, B.price AS 책가격
+FROM tbl_book B
+LEFT JOIN tbl_order O
+ON B.book_id = O.book_id
+LEFT JOIN tbl_customer C
+ON C.cust_id = O.cust_id
+WHERE B.price = (SELECT MAX(price) FROM tbl_book);
 
 
 -- 15. '김연아'가 구매한 도서수를 조회하시오.
 -- 고객명  구매도서수
 -- 김연아  2
-
-
+SELECT c.cust_name AS '고객명', COUNT(o.order_id) AS '구매도서수'
+FROM tbl_customer c
+INNER JOIN tbl_order o
+ON o.cust_id = c.cust_id
+GROUP BY c.cust_name
+HAVING c.cust_name = '김연아';
 
 -- 16. 출판사별로 판매된 책의 개수를 조회하시오.
 -- 출판사     판매된책수
@@ -171,11 +283,29 @@ CREATE TABLE IF NOT EXISTS tbl_order(
 -- 이상미디어 2
 -- 삼성당     0
 
+-- SELECT b.publisher AS '출판사', COUNT(o.order_id) AS '판매된책수'
+-- FROM tbl_order o
+-- RIGHT JOIN tbl_book b
+-- ON o.book_id = b.book_id
+-- GROUP BY b.publisher;
+
+SELECT b.publisher AS '출판사', COUNT(o.order_id) AS '판매된책수'
+FROM tbl_book b
+LEFT JOIN tbl_order o
+ON b.book_id = o.book_id
+GROUP BY b.publisher;
 
 
 -- 17. '박지성'이 구매한 도서를 발간한 출판사(publisher) 개수를 조회하시오.
 -- 고객명  출판사수
 -- 박지성  3
+
+-- SELECT c.cust_name AS '고객명', COUNT(*)
+-- FROM tbl_customer c
+-- INNER JOIN tbl_order o
+-- ON c.cust_id = o.cust_id
+-- GROUP BY c.cust_name
+-- HAVING c.cust_name = '박지성';
 
 
 
@@ -186,6 +316,20 @@ CREATE TABLE IF NOT EXISTS tbl_order(
 -- 장미란  62000
 -- 추신수  86000
 
+-- SELECT c.cust_name AS '고객명', SUM(b.price * o.amount) AS '총구매액'
+-- FROM tbl_order o
+-- INNER JOIN tbl_customer c
+-- ON c.cust_id = o.cust_id
+-- INNER JOIN tbl_book b
+-- ON o.book_id = b.book_id
+-- GROUP BY c.cust_name;
+SELECT C.cust_name AS 고객명, SUM(B.price * O.amount) AS 구매액
+FROM tbl_customer C
+INNER JOIN tbl_order O
+ON C.cust_id = O.cust_id
+INNER JOIN tbl_book B
+ON B.book_id = O.book_id
+GROUP BY C.cust_id, C.cust_name;
 
 
 -- 19. 모든 구매 고객의 이름과 총구매액(price * amount)과 구매횟수를 조회하시오. 구매 이력이 없는 고객은 총구매액과 구매횟수를 0으로 조회하고, 고객번호 오름차순으로 정렬하시오.
@@ -196,6 +340,7 @@ CREATE TABLE IF NOT EXISTS tbl_order(
 -- 추신수  86000      2
 -- 박세리  0          0
 
+-- SELECT c.cust_name AS '고객명',  
 
 
 -- 20. 총구매액이 2~3위인 고객의 이름와 총구매액을 조회하시오.
